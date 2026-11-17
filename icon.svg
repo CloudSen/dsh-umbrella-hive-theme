@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="300" height="300" role="img">
+  <!--
+    The Hive theme icon.
+
+    The facility from the first Resident Evil film, read as a schematic: a
+    central mast carrying five stacked hexagonal decks, the wide top platform
+    with its radial spars, and the sealed room cluster underneath. Drawn from
+    geometry in this repository — no Capcom asset is bundled.
+
+    Resident Evil and The Hive are Capcom trademarks. This is a fan re-creation
+    for a locally installed personal theme, not licensed artwork.
+  -->
+  <defs>
+    <radialGradient id="halo" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#FF2D44" stop-opacity="0.34"/>
+      <stop offset="0.6" stop-color="#8A0618" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#8A0618" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="deck" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FF3048"/>
+      <stop offset="0.55" stop-color="#C00A20"/>
+      <stop offset="1" stop-color="#7A0414"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="300" height="300" rx="70" fill="#060107"/>
+  <circle cx="150" cy="146" r="126" fill="url(#halo)"/>
+
+  <!-- Faint Hive hexes behind the structure. -->
+  <g fill="none" stroke="#E8112D" stroke-opacity="0.13" stroke-width="2">
+    <path d="M150 30 L174 44 V72 L150 86 L126 72 V44 Z"/>
+    <path d="M96 58 L120 72 V100 L96 114 L72 100 V72 Z"/>
+    <path d="M204 58 L228 72 V100 L204 114 L180 100 V72 Z"/>
+    <path d="M150 226 L174 240 V268 L150 282 L126 268 V240 Z"/>
+  </g>
+
+  <g transform="translate(150 150) scale(1.5) translate(-100 -105)">
+    <!-- Sealed room cluster. -->
+    <g fill="url(#deck)" stroke="#FF5C70" stroke-width="1.2">
+      <rect x="78" y="158" width="15" height="9" rx="1"/>
+      <rect x="96" y="162" width="19" height="7" rx="1"/>
+      <rect x="118" y="156" width="11" height="10" rx="1"/>
+    </g>
+
+    <!-- Deck stack, widest in the middle. -->
+    <g fill="url(#deck)" stroke="#FF5C70" stroke-width="1.4" stroke-linejoin="round">
+      <polygon points="70,142 84.4,134.5 115.6,134.5 130,142 115.6,149.5 84.4,149.5"/>
+      <polygon points="60,124 79.2,114 120.8,114 140,124 120.8,134 79.2,134"/>
+      <polygon points="53,106 75.6,94.5 124.4,94.5 147,106 124.4,117.5 75.6,117.5"/>
+      <polygon points="58,88 78.2,78 121.8,78 142,88 121.8,98 78.2,98"/>
+      <polygon points="67,72 82.8,64.5 117.2,64.5 133,72 117.2,79.5 82.8,79.5"/>
+    </g>
+
+    <!-- Dark deck faces, so the plates read as rings around the shaft. -->
+    <g fill="#1C0510" fill-opacity="0.9">
+      <polygon points="79,142 88.6,137.1 111.4,137.1 121,142 111.4,146.9 88.6,146.9"/>
+      <polygon points="72,124 84.4,117.5 115.6,117.5 128,124 115.6,130.5 84.4,130.5"/>
+      <polygon points="67,106 81.1,99 118.9,99 133,106 118.9,113 81.1,113"/>
+      <polygon points="70,88 84.4,81.5 115.6,81.5 130,88 115.6,94.5 84.4,94.5"/>
+      <polygon points="75,72 86.1,67 113.9,67 125,72 113.9,77 86.1,77"/>
+    </g>
+
+    <!-- Plate rims. -->
+    <g fill="none" stroke="#FF3048" stroke-opacity="0.55" stroke-width="1">
+      <path d="M70 142 V146 M130 142 V146 M84.4 149.5 V153.5 M115.6 149.5 V153.5"/>
+      <path d="M53 106 V110 M147 106 V110 M75.6 117.5 V121.5 M124.4 117.5 V121.5"/>
+      <path d="M58 88 V92 M142 88 V92 M78.2 98 V102 M121.8 98 V102"/>
+    </g>
+
+    <!-- Top platform, spars and antenna. -->
+    <polygon points="78,56 90.6,51.5 109.4,51.5 122,56 109.4,60.5 90.6,60.5"
+             fill="url(#deck)" stroke="#FF5C70" stroke-width="1.4"/>
+    <g fill="none" stroke="#FF4055" stroke-opacity="0.7" stroke-width="1.2">
+      <path d="M122 56 L148 61 M78 56 L52 61 M110 56 L134 52 M90 56 L66 52 M100 51.5 L100 64"/>
+    </g>
+    <circle cx="52" cy="61" r="2" fill="#FF8A99"/>
+    <circle cx="148" cy="61" r="2" fill="#FF8A99"/>
+    <circle cx="134" cy="52" r="1.6" fill="#FF8A99"/>
+    <circle cx="66" cy="52" r="1.6" fill="#FF8A99"/>
+
+    <!-- Central mast. -->
+    <path d="M100 172 V30" stroke="#F5E9EC" stroke-opacity="0.92" stroke-width="3.4" stroke-linecap="round"/>
+    <circle cx="100" cy="30" r="3" fill="#FFD9DE"/>
+
+    <!-- Scan ring on the widest deck. -->
+    <polygon points="50,106 74.3,93.6 125.7,93.6 150,106 125.7,118.4 74.3,118.4"
+             fill="none" stroke="#FFC7CE" stroke-opacity="0.75" stroke-width="1.6"/>
+  </g>
+</svg>

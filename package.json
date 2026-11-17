@@ -1,0 +1,58 @@
+{
+  "name": "dsh-umbrella-hive-theme",
+  "version": "1.0.0",
+  "description": "Resident Evil: The Hive theme for DeepSeek Harness — a black-and-crimson control room with the film's underground Hive turning as a live 3D model: decks widening toward the crown, a long bore up to the surface hatch, and a flat rail tunnel carrying a lit train.",
+  "license": "MIT",
+  "type": "module",
+  "keywords": [
+    "deepseek",
+    "harness",
+    "dsh",
+    "dsh-plugin",
+    "theme",
+    "appearance",
+    "the-hive",
+    "resident-evil",
+    "hologram"
+  ],
+  "engines": {
+    "dsh": ">=0.2.1-rc.1 <0.3.0-0"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-client-ui-conversation": ">=0.2.1-rc.1 <0.3.0-0"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "docs",
+    "icon.svg"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
+    }
+  },
+  "homepage": "https://github.com/CloudSen/dsh-umbrella-hive-theme#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CloudSen/dsh-umbrella-hive-theme.git"
+  },
+  "bugs": {
+    "url": "https://github.com/CloudSen/dsh-umbrella-hive-theme/issues"
+  }
+}

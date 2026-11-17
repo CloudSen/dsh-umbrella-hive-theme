@@ -1,0 +1,6 @@
+# The Hive theme: one Host row whose Client half carries the crimson palette,
+# the Hive projection renderer and the facility artwork. The Host half
+# registers nothing.
+- insert:
+    - id: umbrella-hive-theme
+      name: 'dsh-umbrella-hive-theme'
