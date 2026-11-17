@@ -949,6 +949,174 @@ window.__ModuleLoader__.load({
           );
         }
 
+        /* The station and its line. The bottom cluster is the terminus: a
+           narrow bore leaves the plinth, runs dead straight out into the dark
+           and keeps going well past the model, so the facility reads as the
+           end of a long rail approach rather than a tower with a stub. */
+        const railAngle = -0.5;
+        const railDir = [Math.cos(railAngle), 0, Math.sin(railAngle)];
+        const railSide = [-Math.sin(railAngle), 0, Math.cos(railAngle)];
+        const railStart = [railDir[0] * 1.02, 0.07, railDir[2] * 1.02];
+        const railLength = 6.4;
+        const railGrade = 0.018;
+        const halfBore = 0.115;
+        const boreHeight = 0.15;
+        const railSegments = 16;
+        const railPoint = (t, lateral, height) => [
+          railStart[0] + railDir[0] * railLength * t + railSide[0] * lateral,
+          railStart[1] + railLength * railGrade * t + height,
+          railStart[2] + railDir[2] * railLength * t + railSide[2] * lateral,
+        ];
+
+        for (let segment = 0; segment < railSegments; segment += 1) {
+          const t0 = segment / railSegments;
+          const t1 = (segment + 1) / railSegments;
+          /* Floor. */
+          pushPoly(
+            [
+              railPoint(t0, -halfBore, 0),
+              railPoint(t0, halfBore, 0),
+              railPoint(t1, halfBore, 0),
+              railPoint(t1, -halfBore, 0),
+            ],
+            [0, 1, 0],
+            [132, 42, 52],
+            { stroke: 'rgba(255,120,140,0.2)', lineWidth: 0.5 },
+          );
+          /* Roof: a covered bore, so the line reads as a tunnel at any angle. */
+          pushPoly(
+            [
+              railPoint(t0, -halfBore, boreHeight),
+              railPoint(t0, halfBore, boreHeight),
+              railPoint(t1, halfBore, boreHeight),
+              railPoint(t1, -halfBore, boreHeight),
+            ],
+            [0, 1, 0],
+            [206, 92, 104],
+            { stroke: 'rgba(255,150,166,0.3)', lineWidth: 0.5 },
+          );
+          for (const side of [-1, 1]) {
+            pushPoly(
+              [
+                railPoint(t0, side * halfBore, 0),
+                railPoint(t1, side * halfBore, 0),
+                railPoint(t1, side * halfBore, boreHeight),
+                railPoint(t0, side * halfBore, boreHeight),
+              ],
+              [railSide[0] * side, 0, railSide[2] * side],
+              [156, 52, 64],
+              { stroke: 'rgba(255,120,140,0.22)', lineWidth: 0.5 },
+            );
+          }
+        }
+
+        /* Two rails and the sleepers between them. */
+        for (const offset of [-0.045, 0.045]) {
+          pushLine(
+            [railPoint(0.02, offset, 0.012), railPoint(0.99, offset, 0.012)],
+            'rgba(255,206,218,0.5)',
+            0.9,
+            -0.008,
+          );
+        }
+        for (let sleeper = 0; sleeper <= 40; sleeper += 1) {
+          const t = 0.02 + (sleeper / 40) * 0.96;
+          pushLine(
+            [railPoint(t, -0.085, 0.006), railPoint(t, 0.085, 0.006)],
+            'rgba(255,120,140,0.22)',
+            0.6,
+            -0.006,
+          );
+        }
+
+        /* Portal ribs down the bore. */
+        for (const t of [0.12, 0.34, 0.56, 0.78, 0.96]) {
+          for (const side of [-1, 1]) {
+            pushLine(
+              [railPoint(t, side * (halfBore + 0.012), 0), railPoint(t, side * (halfBore + 0.012), boreHeight + 0.02)],
+              'rgba(255,170,186,0.4)',
+              0.8,
+              -0.006,
+            );
+          }
+          pushLine(
+            [
+              railPoint(t, -halfBore - 0.012, boreHeight + 0.02),
+              railPoint(t, halfBore + 0.012, boreHeight + 0.02),
+            ],
+            'rgba(255,170,186,0.4)',
+            0.8,
+            -0.006,
+          );
+        }
+
+        /* Station mouth: a lit frame where the line meets the plinth. */
+        for (const side of [-1, 1]) {
+          pushLine(
+            [railPoint(0.005, side * (halfBore + 0.02), 0), railPoint(0.005, side * (halfBore + 0.02), boreHeight + 0.035)],
+            'rgba(255,214,224,0.7)',
+            1.2,
+            -0.006,
+          );
+        }
+        pushLine(
+          [
+            railPoint(0.005, -halfBore - 0.02, boreHeight + 0.035),
+            railPoint(0.005, halfBore + 0.02, boreHeight + 0.035),
+          ],
+          'rgba(255,214,224,0.7)',
+          1.2,
+          -0.006,
+        );
+
+        /* Platform: a lit apron in front of the mouth, so the cluster reads as
+           a terminus rather than a wall the line happens to touch. */
+        pushPoly(
+          [
+            railPoint(-0.09, -0.34, 0.008),
+            railPoint(0.02, -0.3, 0.008),
+            railPoint(0.02, 0.3, 0.008),
+            railPoint(-0.09, 0.34, 0.008),
+          ],
+          [0, 1, 0],
+          [204, 96, 108],
+          { stroke: 'rgba(255,170,186,0.4)', lineWidth: 0.7 },
+        );
+        pushLine(
+          [railPoint(-0.08, -0.32, 0.012), railPoint(-0.08, 0.32, 0.012)],
+          'rgba(255,206,218,0.55)',
+          1.2,
+          -0.008,
+        );
+
+        /* A canopy over the platform, on two posts. */
+        const canopyAt = (t, lateral, height) => railPoint(t, lateral, height);
+        pushPoly(
+          [
+            canopyAt(0.0, -0.3, 0.4),
+            canopyAt(0.13, -0.3, 0.4),
+            canopyAt(0.13, 0.3, 0.4),
+            canopyAt(0.0, 0.3, 0.4),
+          ],
+          [0, 1, 0],
+          [186, 76, 88],
+          { stroke: 'rgba(255,160,176,0.4)', lineWidth: 0.8 },
+        );
+        pushLine(
+          [canopyAt(0.0, -0.3, 0.4), canopyAt(0.13, -0.3, 0.4)],
+          'rgba(255,196,210,0.5)',
+          0.9,
+          -0.006,
+        );
+        for (const lateral of [-0.26, 0.26]) {
+          pushLine(
+            [canopyAt(-0.01, lateral, 0), canopyAt(-0.01, lateral, 0.4)],
+            'rgba(255,160,176,0.5)',
+            1.1,
+            -0.005,
+          );
+        }
+
         /* Neck between the room cluster and the first deck. */
         for (let side = 0; side < 6; side += 1) {
           const a0 = (side / 6) * Math.PI * 2;
@@ -1193,210 +1361,6 @@ window.__ModuleLoader__.load({
         }
 
         }
-
-        /* The train tunnel: a flat, shallow bore on a very gentle grade. It
-           leaves the widest deck and runs out toward the surface as a closed
-           box: solid roof, continuous lit window strips on both flanks, portal
-           ribs and an open mouth at the far end. */
-        const railAngle = -0.62;
-        const railStart = [Math.cos(railAngle) * 0.98, 3.22, Math.sin(railAngle) * 0.98];
-        const railLength = 1.72;
-        const railGrade = 0.062;
-        const railEnd = [
-          railStart[0] + Math.cos(railAngle) * railLength,
-          railStart[1] + railLength * railGrade,
-          railStart[2] + Math.sin(railAngle) * railLength,
-        ];
-        const railAxis = [
-          railEnd[0] - railStart[0],
-          railEnd[1] - railStart[1],
-          railEnd[2] - railStart[2],
-        ];
-        const railAxisLength = Math.sqrt(
-          railAxis[0] * railAxis[0] + railAxis[1] * railAxis[1] + railAxis[2] * railAxis[2],
-        );
-        const railDir = [
-          railAxis[0] / railAxisLength,
-          railAxis[1] / railAxisLength,
-          railAxis[2] / railAxisLength,
-        ];
-        const railSide = [-Math.sin(railAngle), 0, Math.cos(railAngle)];
-        const railUp = [
-          railDir[1] * railSide[2] - railDir[2] * railSide[1],
-          railDir[2] * railSide[0] - railDir[0] * railSide[2],
-          railDir[0] * railSide[1] - railDir[1] * railSide[0],
-        ];
-        const railPoint = (t, lateral, height) => [
-          railStart[0] + railDir[0] * railAxisLength * t + railSide[0] * lateral + railUp[0] * height,
-          railStart[1] + railDir[1] * railAxisLength * t + railSide[1] * lateral + railUp[1] * height,
-          railStart[2] + railDir[2] * railAxisLength * t + railSide[2] * lateral + railUp[2] * height,
-        ];
-        const halfBore = 0.3;
-        const boreHeight = 0.24;
-        const railSegments = 10;
-
-        /* Floor. */
-        for (let segment = 0; segment < railSegments; segment += 1) {
-          const t0 = segment / railSegments;
-          const t1 = (segment + 1) / railSegments;
-          pushPoly(
-            [
-              railPoint(t0, -halfBore, 0),
-              railPoint(t0, halfBore, 0),
-              railPoint(t1, halfBore, 0),
-              railPoint(t1, -halfBore, 0),
-            ],
-            railUp,
-            [128, 40, 50],
-            { stroke: 'rgba(255,140,158,0.24)', lineWidth: 0.5 },
-          );
-        }
-
-        /* No roof: the hologram is a cutaway, so the track and the train stay
-           visible from above. The flank walls carry the sense of enclosure. */
-
-        /* Flank walls: solid, with a lit cap line along the top. */
-        for (const side of [-1, 1]) {
-          for (let segment = 0; segment < railSegments; segment += 1) {
-            const t0 = segment / railSegments;
-            const t1 = (segment + 1) / railSegments;
-            const lateral = side * halfBore;
-            pushPoly(
-              [
-                railPoint(t0, lateral, 0),
-                railPoint(t1, lateral, 0),
-                railPoint(t1, lateral, boreHeight),
-                railPoint(t0, lateral, boreHeight),
-              ],
-              [railSide[0] * side, railSide[1] * side, railSide[2] * side],
-              [176, 62, 74],
-              { stroke: 'rgba(255,140,158,0.3)', lineWidth: 0.6 },
-            );
-          }
-          pushLine(
-            [railPoint(0.01, side * halfBore, boreHeight), railPoint(0.99, side * halfBore, boreHeight)],
-            'rgba(255,206,218,0.7)',
-            1.4,
-            -0.005,
-          );
-        }
-
-        /* Rails and sleepers on the floor. */
-        for (const railOffset of [-0.085, 0.085]) {
-          pushLine(
-            [railPoint(0.01, railOffset, 0.012), railPoint(0.99, railOffset, 0.012)],
-            'rgba(255,214,222,0.4)',
-            0.9,
-            -0.008,
-          );
-        }
-        for (let sleeper = 0; sleeper <= 30; sleeper += 1) {
-          const t = 0.01 + (sleeper / 30) * 0.98;
-          pushLine(
-            [railPoint(t, -0.12, 0.006), railPoint(t, 0.12, 0.006)],
-            'rgba(255,120,140,0.22)',
-            0.6,
-            -0.006,
-          );
-        }
-
-        /* Portal ribs: slightly proud rings down the length. */
-        for (const t of [0.2, 0.45, 0.7, 0.92]) {
-          for (const side of [-1, 1]) {
-            const lateral = side * (halfBore + 0.018);
-            pushLine(
-              [railPoint(t, lateral, 0), railPoint(t, lateral, boreHeight + 0.02)],
-              'rgba(255,170,186,0.45)',
-              1,
-              -0.006,
-            );
-          }
-          pushLine(
-            [
-              railPoint(t, -halfBore - 0.018, boreHeight + 0.02),
-              railPoint(t, halfBore + 0.018, boreHeight + 0.02),
-            ],
-            'rgba(255,170,186,0.45)',
-            1,
-            -0.006,
-          );
-        }
-
-        /* The train: one long car filling the bore, lit from inside so the
-           hologram shows what the tunnel carries. */
-        {
-          const carStart = 0.24;
-          const carEnd = 0.74;
-          const carHalfWidth = 0.2;
-          const carBase = 0.02;
-          const carHeight = 0.17;
-          const corners = (t) => [
-            railPoint(t, -carHalfWidth, carBase),
-            railPoint(t, carHalfWidth, carBase),
-            railPoint(t, carHalfWidth, carBase + carHeight),
-            railPoint(t, -carHalfWidth, carBase + carHeight),
-          ];
-          const a = corners(carStart);
-          const b = corners(carEnd);
-          for (const side of [0, 1]) {
-            const next = side + 1;
-            pushPoly(
-              [a[side], a[next], b[next], b[side]],
-              [railSide[0] * (side === 0 ? -1 : 1), 0, railSide[2] * (side === 0 ? -1 : 1)],
-              [150, 50, 60],
-              { stroke: 'rgba(255,150,166,0.4)', lineWidth: 0.6 },
-            );
-          }
-          /* Lit roof: what you actually see from above. */
-          pushPoly([a[2], a[3], b[3], b[2]], railUp, [255, 190, 200], {
-            emissive: true,
-            tint: 0.9,
-          });
-          /* Window bands down both flanks. */
-          for (const side of [-1, 1]) {
-            const offset = side * (carHalfWidth + 0.004);
-            pushPoly(
-              [
-                railPoint(carStart + 0.02, offset, carBase + 0.055),
-                railPoint(carEnd - 0.02, offset, carBase + 0.055),
-                railPoint(carEnd - 0.02, offset, carBase + 0.135),
-                railPoint(carStart + 0.02, offset, carBase + 0.135),
-              ],
-              [railSide[0] * side, 0, railSide[2] * side],
-              [255, 214, 222],
-              { emissive: true, bias: -0.04 },
-            );
-          }
-          /* Bright cab at the leading end. */
-          pushPoly(
-            [a[0], a[1], a[2], a[3]],
-            [-railDir[0], -railDir[1], -railDir[2]],
-            [255, 226, 232],
-            { emissive: true, tint: 0.95, bias: -0.04 },
-          );
-        }
-
-        /* The mouth at the far end: a lit frame only. A filled panel here read
-           as a solid plate whenever the camera looked straight down the bore
-           and hid the track behind it. */
-        for (const side of [-1, 1]) {
-          const lateral = side * (halfBore + 0.03);
-          pushLine(
-            [railPoint(0.985, lateral, 0), railPoint(0.985, lateral, boreHeight + 0.03)],
-            'rgba(255,212,222,0.8)',
-            1.4,
-            -0.006,
-          );
-        }
-        pushLine(
-          [
-            railPoint(0.985, -halfBore - 0.03, boreHeight + 0.03),
-            railPoint(0.985, halfBore + 0.03, boreHeight + 0.03),
-          ],
-          'rgba(255,212,222,0.8)',
-          1.4,
-          -0.006,
-        );
 
         /* Top cap: the shaft's base plate, with a short rim and spars. */
         const topY = HIVE.top;
