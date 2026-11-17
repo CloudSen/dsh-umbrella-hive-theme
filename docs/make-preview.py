@@ -156,16 +156,6 @@ def build():
             poly([(i0[0], yb, i0[1]), (i1[0], yb, i1[1]), (i1[0], yt, i1[1]), (i0[0], yt, i0[1])],
                  [-math.cos(mid), 0, -math.sin(mid)], INNER, 'rgba(255,90,110,0.16)', 0.5)
         line(hex_ring(r, yt + 0.002), 'rgba(255,190,205,0.55)', 0.8, -0.006)
-        for wnd in range(6):
-            a = wnd / 6 * 2 * math.pi + 0.3
-            w0, w1, span = a - 0.055, a + 0.055, 0.11
-            poly([(math.cos(w0) * (r + 0.002), yb + 0.05, math.sin(w0) * (r + 0.002)),
-                  (math.cos(w1) * (r + 0.002), yb + 0.05, math.sin(w1) * (r + 0.002)),
-                  (math.cos(w1) * (r + 0.002), yt - 0.05, math.sin(w1) * (r + 0.002)),
-                  (math.cos(w0) * (r + 0.002), yt - 0.05, math.sin(w0) * (r + 0.002))],
-                 [math.cos(a), 0, math.sin(a)], [255, 150, 162], None, 0.5, True)
-            del span
-
     # Crown deck detail: mezzanine, catwalks, pods, railing, masts.
     cy_, cr_ = DECKS[-1]
     cyt = cy_ + 0.1
