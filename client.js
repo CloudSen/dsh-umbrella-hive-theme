@@ -958,13 +958,16 @@ window.__ModuleLoader__.load({
         const railSide = [-Math.sin(railAngle), 0, Math.cos(railAngle)];
         const railStart = [railDir[0] * 1.04, 0.045, railDir[2] * 1.04];
         const railLength = 6.8;
-        const railGrade = 0.014;
+        const railRise = 1.45;
         const halfBore = 0.052;
         const boreHeight = 0.072;
         const railSegments = 16;
+        /* The bore leaves the terminus level and then climbs: height grows with
+           t², so the grade is zero at the station and steepens as the line runs
+           out toward the surface. */
         const railPoint = (t, lateral, height) => [
           railStart[0] + railDir[0] * railLength * t + railSide[0] * lateral,
-          railStart[1] + railLength * railGrade * t + height,
+          railStart[1] + railRise * t * t + height,
           railStart[2] + railDir[2] * railLength * t + railSide[2] * lateral,
         ];
 
