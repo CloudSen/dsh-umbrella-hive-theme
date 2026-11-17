@@ -246,12 +246,14 @@ window.__ModuleLoader__.load({
 
     /* The light sheet needs its own specificity bump: the host re-injects its
        own light palette whenever the appearance changes, and it lands after
-       this stylesheet, so a plain `:root` loses on equal weight. `:root:root`
-       wins without touching the dark rule's attribute selector. */
-    const PALETTE_LIGHT =
-      ':root:root,:root body{' + declarations('light') + '}';
+       this stylesheet, so a plain `:root` loses on equal weight.
+       The dark rule then has to outrank the light one on BOTH elements, or the
+       light value wins on <html> while body is dark: `:root:root` is (0,2,0),
+       so dark uses `:root:root:has(...)`, which carries the attribute's own
+       weight and lands at (0,3,1). */
+    const PALETTE_LIGHT = ':root:root,body{' + declarations('light') + '}';
     const PALETTE_DARK =
-      'html:has(body[data-ds-dark-theme]),body[data-ds-dark-theme]{' +
+      ':root:root:has(body[data-ds-dark-theme]),body[data-ds-dark-theme]{' +
       declarations('dark') +
       '}';
 
@@ -359,7 +361,7 @@ window.__ModuleLoader__.load({
          `bg-base`, the same token the conversation uses, so it gets its own
          opaque fill instead of a different token. */
       ':root:root{--hive-panel-solid:#FBFAF9}',
-      'html:has(body[data-ds-dark-theme]){--hive-panel-solid:#0B0209}',
+      ':root:root:has(body[data-ds-dark-theme]),body[data-ds-dark-theme]{--hive-panel-solid:#0B0209}',
       'html body [class*="_rightbarCol"],html body [class*="_rightbarCol"]>div{background-color:var(--hive-panel-solid)!important}',
 
       /* --- app chrome --------------------------------------------------- */
