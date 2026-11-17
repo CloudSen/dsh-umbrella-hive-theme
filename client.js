@@ -1206,24 +1206,7 @@ window.__ModuleLoader__.load({
             }
           }
 
-          /* Rim lights: small lit cells on the outer wall. */
-          for (let windowIndex = 0; windowIndex < 5; windowIndex += 1) {
-            const angle = (windowIndex / 5) * Math.PI * 2 + 0.2;
-            const span = 0.1;
-            const w0 = angle - span / 2;
-            const w1 = angle + span / 2;
-            pushPoly(
-              [
-                [Math.cos(w0) * (r + 0.002), yBottom + 0.045, Math.sin(w0) * (r + 0.002)],
-                [Math.cos(w1) * (r + 0.002), yBottom + 0.045, Math.sin(w1) * (r + 0.002)],
-                [Math.cos(w1) * (r + 0.002), yTop - 0.045, Math.sin(w1) * (r + 0.002)],
-                [Math.cos(w0) * (r + 0.002), yTop - 0.045, Math.sin(w0) * (r + 0.002)],
-              ],
-              [Math.cos(angle), 0, Math.sin(angle)],
-              [255, 128, 142],
-              { emissive: true, tint: 0.92, bias: -0.05 },
-            );
-          }
+          /* No windows: the decks are solid plates with a machined rim. */
 
         /* The crown deck carries the facility's working level, so it gets the
            detail: a raised mezzanine around the shaft, radial catwalks out to
