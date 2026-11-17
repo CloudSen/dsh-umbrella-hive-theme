@@ -330,14 +330,20 @@ window.__ModuleLoader__.load({
       /* The overlay layer gives every direct child `pointer-events:auto`, and this
          HUD covers the whole window — which swallowed the title-bar drag and
          double-click. It is decoration, so nothing in it may take a pointer. */
+      /* The overlay layer turns pointer events on for every direct child, and a
+         full-bleed HUD therefore sat on top of the header and ate the
+         title-bar drag and double-click. The parts are fixed to the viewport
+         and the container is a zero-size static div, so nothing in this layer
+         has an area to hit. */
       '.hive-hud,.hive-hud *{pointer-events:none!important}',
-      '.hive-corner{position:absolute;width:34px;height:34px;border:0 solid rgba(255,64,85,.42)}',
+      '.hive-hud{position:static;width:0;height:0}',
+      '.hive-corner{position:fixed;width:34px;height:34px;border:0 solid rgba(255,64,85,.42)}',
       '.hive-corner.tl{top:10px;left:10px;border-top-width:1.5px;border-left-width:1.5px}',
       '.hive-corner.tr{top:10px;right:10px;border-top-width:1.5px;border-right-width:1.5px}',
       '.hive-corner.bl{bottom:10px;left:10px;border-bottom-width:1.5px;border-left-width:1.5px}',
       '.hive-corner.br{bottom:10px;right:10px;border-bottom-width:1.5px;border-right-width:1.5px}',
-      '.hive-hair{position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,transparent,rgba(232,17,45,.60),transparent)}',
-      '.hive-chip{position:absolute;right:20px;bottom:15px;display:flex;align-items:center;gap:8px;opacity:.72}',
+      '.hive-hair{position:fixed;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,transparent,rgba(232,17,45,.60),transparent)}',
+      '.hive-chip{position:fixed;right:20px;bottom:15px;display:flex;align-items:center;gap:8px;opacity:.72}',
       '.hive-chip-text{font-family:var(--dsw-font-family-code,ui-monospace,SFMono-Regular,Menlo,monospace);font-size:9px;font-weight:600;letter-spacing:.22em;color:var(--dsw-alias-label-secondary);white-space:nowrap}',
       '.hive-chip-name{color:var(--dsw-alias-brand-primary);letter-spacing:.26em}',
       '.hive-chip-sep{color:var(--dsw-alias-label-tertiary);opacity:.7}',
