@@ -327,7 +327,10 @@ window.__ModuleLoader__.load({
       'html:has(body[data-ds-dark-theme]) .hive-canvas{opacity:1;filter:none}',
 
       /* --- HUD frame ---------------------------------------------------- */
-      '.hive-hud{position:absolute;inset:0;overflow:hidden;pointer-events:none}',
+      /* The overlay layer gives every direct child `pointer-events:auto`, and this
+         HUD covers the whole window — which swallowed the title-bar drag and
+         double-click. It is decoration, so nothing in it may take a pointer. */
+      '.hive-hud,.hive-hud *{pointer-events:none!important}',
       '.hive-corner{position:absolute;width:34px;height:34px;border:0 solid rgba(255,64,85,.42)}',
       '.hive-corner.tl{top:10px;left:10px;border-top-width:1.5px;border-left-width:1.5px}',
       '.hive-corner.tr{top:10px;right:10px;border-top-width:1.5px;border-right-width:1.5px}',
