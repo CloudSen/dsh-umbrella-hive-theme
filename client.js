@@ -994,7 +994,6 @@ window.__ModuleLoader__.load({
             ],
             [0, 1, 0],
             [198, 88, 100],
-            { stroke: 'rgba(255,150,166,0.26)', lineWidth: 0.4 },
           );
           for (const side of [-1, 1]) {
             pushPoly(
