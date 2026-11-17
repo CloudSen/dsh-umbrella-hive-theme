@@ -278,56 +278,57 @@ def build():
 
 
 def build_tunnel():
-    angle = RAIL_ANGLE
-    start = (math.cos(angle) * 0.98, 3.22, math.sin(angle) * 0.98)
-    end = (start[0] + math.cos(angle) * RAIL_LEN, start[1] + RAIL_LEN * RAIL_GRADE,
-           start[2] + math.sin(angle) * RAIL_LEN)
-    axis = (end[0] - start[0], end[1] - start[1], end[2] - start[2])
-    length = math.sqrt(sum(c * c for c in axis))
-    d = tuple(c / length for c in axis)
-    side = (-math.sin(angle), 0, math.cos(angle))
-    up = (d[1] * side[2] - d[2] * side[1], d[2] * side[0] - d[0] * side[2],
-          d[0] * side[1] - d[1] * side[0])
+    """The terminus at the base and the long bore leaving it.
+
+    Mirrors the client: level at the station, height growing with t squared,
+    narrow cross-section, no rails drawn (they were sub-pixel and only caused
+    sorting artifacts at this size).
+    """
+    angle = -0.5
+    hb, bh = 0.052, 0.072
+    length, rise = 6.8, 1.45
+    start = (math.cos(angle) * 1.04, 0.045, math.sin(angle) * 1.04)
+    d = (math.cos(angle), 0.0, math.sin(angle))
+    side = (-math.sin(angle), 0.0, math.cos(angle))
 
     def rp(t, lateral, height):
-        return (start[0] + d[0] * length * t + side[0] * lateral + up[0] * height,
-                start[1] + d[1] * length * t + side[1] * lateral + up[1] * height,
-                start[2] + d[2] * length * t + side[2] * lateral + up[2] * height)
+        return (start[0] + d[0] * length * t + side[0] * lateral,
+                start[1] + rise * t * t + height,
+                start[2] + d[2] * length * t + side[2] * lateral)
 
-    hb, bh, seg = 0.42, 0.24, 8
-    for s in range(seg):
-        t0, t1 = s / seg, (s + 1) / seg
-        poly([rp(t0, -hb, 0), rp(t0, hb, 0), rp(t1, hb, 0), rp(t1, -hb, 0)], up, [128, 40, 50],
-             'rgba(255,140,158,0.24)', 0.5)
-    for s in (-1, 1):
-        for k in range(seg):
-            t0, t1 = k / seg, (k + 1) / seg
-            lat = s * hb
-            poly([rp(t0, lat, 0), rp(t1, lat, 0), rp(t1, lat, bh), rp(t0, lat, bh)],
-                 [side[0] * s, side[1] * s, side[2] * s], WALL, EDGE)
-        line([rp(0.01, s * hb, bh), rp(0.99, s * hb, bh)], 'rgba(255,206,218,0.7)', 0.9, -0.005)
+    seg = 12
+    for k in range(seg):
+        t0, t1 = k / seg, (k + 1) / seg
+        poly([rp(t0, -hb, 0), rp(t0, hb, 0), rp(t1, hb, 0), rp(t1, -hb, 0)],
+             [0, 1, 0], [132, 42, 52], 'rgba(255,120,140,0.2)', 0.4)
+        poly([rp(t0, -hb, bh), rp(t0, hb, bh), rp(t1, hb, bh), rp(t1, -hb, bh)],
+             [0, 1, 0], [198, 88, 100])
+        for s in (-1, 1):
+            poly([rp(t0, s * hb, 0), rp(t1, s * hb, 0), rp(t1, s * hb, bh), rp(t0, s * hb, bh)],
+                 [side[0] * s, 0, side[2] * s], [150, 50, 62], 'rgba(255,120,140,0.18)', 0.4)
 
-    cs, ce, chw, cb, chh = 0.24, 0.74, 0.3, 0.02, 0.17
-    corner = lambda t: [rp(t, -chw, cb), rp(t, chw, cb), rp(t, chw, cb + chh), rp(t, -chw, cb + chh)]
-    a, b = corner(cs), corner(ce)
-    for s in (0, 1):
-        n = s + 1
-        poly([a[s], a[n], b[n], b[s]], [side[0] * (1 if s else -1), 0, side[2] * (1 if s else -1)],
-             [150, 50, 60], 'rgba(255,150,166,0.4)', 0.5)
-    poly([a[2], a[3], b[3], b[2]], up, [255, 190, 200], None, 0.5, True, 0.9)
+    for t in (0.1, 0.32, 0.54, 0.76, 0.95):
+        for s in (-1, 1):
+            line([rp(t, s * (hb + 0.006), 0), rp(t, s * (hb + 0.006), bh + 0.01)],
+                 'rgba(255,170,186,0.3)', 0.6, -0.005)
+        line([rp(t, -hb - 0.006, bh + 0.01), rp(t, hb + 0.006, bh + 0.01)],
+             'rgba(255,170,186,0.3)', 0.6, -0.005)
+
     for s in (-1, 1):
-        off = s * (chw + 0.004)
-        poly([rp(cs + 0.02, off, cb + 0.055), rp(ce - 0.02, off, cb + 0.055),
-              rp(ce - 0.02, off, cb + 0.135), rp(cs + 0.02, off, cb + 0.135)],
-             [side[0] * s, 0, side[2] * s], [255, 214, 222], None, 0.5, True)
-    poly([a[0], a[1], a[2], a[3]], (-d[0], -d[1], -d[2]), [255, 226, 232], None, 0.5, True, 0.95)
-    poly([rp(0.985, -hb, 0), rp(0.985, hb, 0), rp(0.985, hb, bh), rp(0.985, -hb, bh)], d,
-         [255, 168, 182], None, 0.5, True, 0.85)
+        line([rp(0.004, s * (hb + 0.01), 0), rp(0.004, s * (hb + 0.01), bh + 0.018)],
+             'rgba(255,214,224,0.55)', 0.8, -0.005)
+    line([rp(0.004, -hb - 0.01, bh + 0.018), rp(0.004, hb + 0.01, bh + 0.018)],
+         'rgba(255,214,224,0.55)', 0.8, -0.005)
+
+    # Platform, canopy.
+    poly([rp(-0.035, -0.1, 0.004), rp(0.01, -0.09, 0.004), rp(0.01, 0.09, 0.004),
+          rp(-0.035, 0.1, 0.004)], [0, 1, 0], [204, 96, 108], 'rgba(255,170,186,0.32)', 0.5)
+    line([rp(-0.032, -0.095, 0.006), rp(-0.032, 0.095, 0.006)], 'rgba(255,206,218,0.45)', 0.8, -0.006)
+    poly([rp(-0.045, -0.1, 0.115), rp(0.02, -0.1, 0.115), rp(0.02, 0.1, 0.115),
+          rp(-0.045, 0.1, 0.115)], [0, 1, 0], [180, 72, 84], 'rgba(255,160,176,0.3)', 0.5)
     for s in (-1, 1):
-        lat = s * (hb + 0.03)
-        line([rp(0.985, lat, 0), rp(0.985, lat, bh + 0.03)], 'rgba(255,212,222,0.85)', 0.9, -0.006)
-    line([rp(0.985, -hb - 0.03, bh + 0.03), rp(0.985, hb + 0.03, bh + 0.03)],
-         'rgba(255,212,222,0.85)', 0.9, -0.006)
+        line([rp(-0.04, s * 0.085, 0.004), rp(-0.04, s * 0.085, 0.115)],
+             'rgba(255,160,176,0.4)', 0.7, -0.004)
 
 
 def render():
