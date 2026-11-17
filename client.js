@@ -373,6 +373,15 @@ window.__ModuleLoader__.load({
       ':root:root:has(body[data-ds-dark-theme]),body[data-ds-dark-theme]{--hive-panel-solid:#0B0209}',
       'html body [class*="_rightbarCol"],html body [class*="_rightbarCol"]>div{background-color:var(--hive-panel-solid)!important}',
 
+      /* macOS: DSH declares no draggable region above the conversation (its
+         only `-webkit-app-region: drag` is the Windows titlebar), so the empty
+         strip beside the traffic lights is ordinary content and a double-click
+         there never reaches the window. The host already marks the controls in
+         this header `no-drag`, which is exactly the shape of a title bar: make
+         the header draggable and let those overrides keep the buttons clickable. */
+      '[data-platform=darwin] [class*="_header"],[data-platform=darwin] [class*="_titleRow"]{-webkit-app-region:drag}',
+      '[data-platform=darwin] [class*="_header"] button,[data-platform=darwin] [class*="_header"] a,[data-platform=darwin] [class*="_header"] [role="button"],[data-platform=darwin] [class*="_titleRow"] button,[data-platform=darwin] [class*="_headerLeading"],[data-platform=darwin] [class*="_headerActions"],[data-platform=darwin] [class*="_headerUtilities"],[data-platform=darwin] [class*="_headerCorner"]{-webkit-app-region:no-drag}',
+
       /* --- app chrome --------------------------------------------------- */
       /* macOS paints the New Session pill with a hardcoded translucent white
          literal, not a token, so no palette reaches it and its label ends up
