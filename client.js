@@ -1010,24 +1010,9 @@ window.__ModuleLoader__.load({
           }
         }
 
-        /* Rails and sleepers. */
-        for (const offset of [-0.021, 0.021]) {
-          pushLine(
-            [railPoint(0.02, offset, 0.006), railPoint(0.99, offset, 0.006)],
-            'rgba(255,206,218,0.42)',
-            0.6,
-            -0.006,
-          );
-        }
-        for (let sleeper = 0; sleeper <= 44; sleeper += 1) {
-          const t = 0.02 + (sleeper / 44) * 0.96;
-          pushLine(
-            [railPoint(t, -0.04, 0.003), railPoint(t, 0.04, 0.003)],
-            'rgba(255,120,140,0.18)',
-            0.4,
-            -0.005,
-          );
-        }
+        /* No rails or sleepers: at this cross-section they are sub-pixel, and
+           every line drawn inside the bore sorted against the roof and poked
+           through it as a hairline. The bore reads as a dark tube instead. */
 
         /* Portal ribs down the bore. */
         for (const t of [0.1, 0.32, 0.54, 0.76, 0.95]) {
