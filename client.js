@@ -448,7 +448,6 @@ window.__ModuleLoader__.load({
      * empty bands on either side are measured from the live DOM instead of
      * guessed from the viewport. The Hive is never resized: it sits in the left
      * band at full size while that band can hold it; when it cannot, the
-     * monitoring console on the right (pure set dressing) is dropped, and the
      * Hive moves behind the middle of the column.
      */
     const HIVE_LAYOUT = {
@@ -459,8 +458,6 @@ window.__ModuleLoader__.load({
       footprint: 1.7,
       /* Clear space between that deck and the transcript. */
       margin: 4,
-      /* Below this the console's readout cells crowd the text; hide it. */
-      consoleMinRadius: 84,
     };
 
     const clamp01 = (value) => (value < 0 ? 0 : value > 1 ? 1 : value);
@@ -530,10 +527,6 @@ window.__ModuleLoader__.load({
         beside: false,
         stageX: 0,
         veilX: 0,
-        consoleVisible: false,
-        consoleX: 0,
-        consoleY: 0,
-        consoleRadius: 0,
       };
       let layoutTimer = 0;
       let layoutFrame = 0;
@@ -625,8 +618,7 @@ window.__ModuleLoader__.load({
 
       /**
        * Fit the projection to the conversation. A wide window keeps the model
-       * in the left band and the console in the right one; a narrow window
-       * drops the console and centres the model behind the transcript.
+       * in the left band; a narrow window centres it behind the transcript.
        * @returns whether the drawn placement changed.
        */
       function measureLayout() {
@@ -635,25 +627,18 @@ window.__ModuleLoader__.load({
           beside: layout.beside,
           stageX: layout.stageX,
           veilX: layout.veilX,
-          consoleVisible: layout.consoleVisible,
-          consoleX: layout.consoleX,
-          consoleY: layout.consoleY,
-          consoleRadius: layout.consoleRadius,
         };
         const body = conversationBody();
         if (body === null) {
           layout.beside = false;
           layout.stageX = width * 0.5;
           layout.veilX = width * 0.5;
-          layout.consoleVisible = false;
         } else {
           const { node, rect } = body;
           const columnWidth = Math.max(1, rect.width);
           const contentWidth = Math.max(1, contentWidthOf(node, columnWidth));
           const gutter = Math.max(0, (columnWidth - contentWidth) / 2);
           const contentLeft = rect.left + gutter;
-          const contentRight = contentLeft + contentWidth;
-          const rightGutter = Math.max(0, rect.right - contentRight);
           /* The widest deck sets the on-screen half-width, and the focal is a
              fixed fraction of the window height, so it scales with that height
              rather than with the column. */
@@ -679,27 +664,12 @@ window.__ModuleLoader__.load({
           } else {
             layout.stageX = layout.veilX;
           }
-          /* The console's cells reach 1.5 radii left of its hub, so it needs a
-             band of about 2.8 radii plus margins. Shrink it when the band is
-             thin, hide it when even a readable core would not fit. */
-          if (fitsBeside) {
-            const radius = Math.min(width * 0.072, 132, (rightGutter - 48) / 2.8);
-            layout.consoleRadius = Math.max(0, radius);
-            layout.consoleVisible = radius >= HIVE_LAYOUT.consoleMinRadius;
-            layout.consoleX = contentRight + rightGutter / 2;
-            layout.consoleY = height * 0.42;
-          } else {
-            layout.consoleVisible = false;
-          }
+
         }
         return (
           layout.beside !== previous.beside ||
           layout.stageX !== previous.stageX ||
-          layout.veilX !== previous.veilX ||
-          layout.consoleVisible !== previous.consoleVisible ||
-          layout.consoleX !== previous.consoleX ||
-          layout.consoleY !== previous.consoleY ||
-          layout.consoleRadius !== previous.consoleRadius
+          layout.veilX !== previous.veilX
         );
       }
 
@@ -1808,123 +1778,6 @@ window.__ModuleLoader__.load({
         context.fillStyle = veil;
         context.fillRect(0, 0, width, height);
 
-        /* Wide windows leave a whole column of empty space to the right of the
-           conversation, so it gets the facility's monitoring console: three
-           counter-rotating hex rings around a live core, a sweep, and a short
-           readout stack. Nothing here is informational — it is set dressing,
-           kept faint enough to sit under the interface, and the first thing
-           dropped when the window leaves no band for it. */
-        if (layout.consoleVisible) {
-          const panelX = layout.consoleX;
-          const panelY = layout.consoleY;
-          const panelR = layout.consoleRadius;
-          const breathe = 0.5 + 0.5 * Math.sin(tSec * 0.7);
-          const inkScale = darkScheme ? 1 : 1.9;
-
-          for (let ring = 0; ring < 3; ring += 1) {
-            const ringRadius = panelR * (0.46 + ring * 0.27);
-            const ringSpin = tSec * (0.14 - ring * 0.06) * (ring % 2 === 0 ? 1 : -1);
-            context.beginPath();
-            for (let corner = 0; corner < 6; corner += 1) {
-              const angle = (corner / 6) * Math.PI * 2 + ringSpin;
-              const px = panelX + Math.cos(angle) * ringRadius;
-              const py = panelY + Math.sin(angle) * ringRadius;
-              if (corner === 0) context.moveTo(px, py);
-              else context.lineTo(px, py);
-            }
-            context.closePath();
-            context.lineWidth = ring === 1 ? 1.4 : 1;
-            context.strokeStyle =
-              'rgba(232,17,45,' + cssNumber((0.2 - ring * 0.04) * inkScale) + ')';
-            context.stroke();
-          }
-
-          /* Tick ring: 24 marks, every fourth one longer. */
-          for (let tick = 0; tick < 24; tick += 1) {
-            const angle = (tick / 24) * Math.PI * 2;
-            const inner = panelR * 1.02;
-            const outer = panelR * (tick % 4 === 0 ? 1.12 : 1.07);
-            context.beginPath();
-            context.moveTo(panelX + Math.cos(angle) * inner, panelY + Math.sin(angle) * inner);
-            context.lineTo(panelX + Math.cos(angle) * outer, panelY + Math.sin(angle) * outer);
-            context.lineWidth = tick % 4 === 0 ? 1.3 : 0.8;
-            context.strokeStyle = 'rgba(255,64,85,' + (tick % 4 === 0 ? 0.34 : 0.19) * inkScale + ')';
-            context.stroke();
-          }
-
-          /* Radar sweep: a soft wedge plus its leading edge. */
-          const sweepAngle = tSec * 0.9;
-          const sweepArc = 0.45;
-          const sweep = context.createRadialGradient(panelX, panelY, 0, panelX, panelY, panelR);
-          sweep.addColorStop(0, 'rgba(255,64,85,0.05)');
-          sweep.addColorStop(1, 'rgba(255,64,85,0)');
-          context.beginPath();
-          context.moveTo(panelX, panelY);
-          context.arc(panelX, panelY, panelR, sweepAngle - sweepArc, sweepAngle);
-          context.closePath();
-          context.fillStyle = sweep;
-          context.fill();
-          context.beginPath();
-          context.moveTo(panelX, panelY);
-          context.lineTo(
-            panelX + Math.cos(sweepAngle) * panelR,
-            panelY + Math.sin(sweepAngle) * panelR,
-          );
-          context.lineWidth = 1;
-          context.strokeStyle = 'rgba(255,110,128,0.3)';
-          context.stroke();
-
-          /* Live core with a halo. */
-          const core = context.createRadialGradient(panelX, panelY, 0, panelX, panelY, panelR * 0.3);
-          core.addColorStop(0, 'rgba(255,110,128,' + cssNumber(0.16 + breathe * 0.1) + ')');
-          core.addColorStop(1, 'rgba(255,110,128,0)');
-          context.fillStyle = core;
-          context.beginPath();
-          context.arc(panelX, panelY, panelR * 0.3, 0, Math.PI * 2);
-          context.fill();
-          context.beginPath();
-          context.arc(panelX, panelY, 2.4 + breathe * 1.6, 0, Math.PI * 2);
-          context.fillStyle = 'rgba(255,140,155,' + cssNumber(0.45 + breathe * 0.25) + ')';
-          context.fill();
-
-          /* Readout stack. */
-          for (let bar = 0; bar < 5; bar += 1) {
-            const barY = panelY + panelR * 1.28 + bar * 11;
-            const barWidth = panelR * (0.42 + 0.5 * Math.abs(Math.sin(tSec * 0.6 + bar * 1.3)));
-            context.beginPath();
-            context.moveTo(panelX - panelR * 0.62, barY);
-            context.lineTo(panelX - panelR * 0.62 + barWidth, barY);
-            context.lineWidth = 1.6;
-            context.strokeStyle =
-              'rgba(232,17,45,' + cssNumber((0.16 + 0.06 * Math.sin(tSec * 0.9 + bar)) * inkScale) + ')';
-            context.stroke();
-          }
-
-          /* A column of idle cells, like racks waiting for a sector. */
-          for (let cell = 0; cell < 7; cell += 1) {
-            const cellX = panelX - panelR * 1.5;
-            const cellY = panelY - panelR * 0.9 + cell * panelR * 0.3;
-            const size = panelR * 0.075;
-            const lit = Math.sin(tSec * 0.5 + cell * 1.7) > 0.55;
-            context.beginPath();
-            for (let corner = 0; corner < 6; corner += 1) {
-              const angle = (corner / 6) * Math.PI * 2 + Math.PI / 6;
-              const px = cellX + Math.cos(angle) * size;
-              const py = cellY + Math.sin(angle) * size;
-              if (corner === 0) context.moveTo(px, py);
-              else context.lineTo(px, py);
-            }
-            context.closePath();
-            context.lineWidth = 1;
-            context.strokeStyle =
-              'rgba(232,17,45,' + (lit ? 0.42 : 0.17) * inkScale + ')';
-            context.stroke();
-            if (lit) {
-              context.fillStyle = 'rgba(255,96,116,0.22)';
-              context.fill();
-            }
-          }
-        }
       }
 
       function loop(now) {
