@@ -574,6 +574,14 @@ window.__ModuleLoader__.load({
         if (reduced) drawStill();
       }
 
+      /** Width of the open sidebar, or 0 when it is collapsed/absent. */
+      function sidebarWidth() {
+        const column = document.querySelector('[class*="sidebarCol"]');
+        if (column === null) return 0;
+        const rect = column.getBoundingClientRect();
+        return rect.width > 40 && rect.left < width * 0.5 ? rect.width : 0;
+      }
+
       /** The widest visible transcript column in the centre pane, or null. */
       function conversationBody() {
         const nodes = document.querySelectorAll('[data-conversation-content]');
@@ -659,9 +667,18 @@ window.__ModuleLoader__.load({
             : contentLeft >= threshold;
           layout.beside = fitsBeside;
           layout.veilX = rect.left + columnWidth / 2;
-          layout.stageX = fitsBeside
-            ? contentLeft / 2
-            : layout.veilX;
+          if (fitsBeside) {
+            /* With the sidebar open, lean the stack toward the transcript
+               instead of dead-centring it over the translucent panel; the
+               clamp keeps its right edge out of the text. */
+            const bias = sidebarWidth() > 0 ? 64 : 0;
+            layout.stageX = Math.min(
+              contentLeft - half - HIVE_LAYOUT.margin,
+              Math.max(half + HIVE_LAYOUT.margin, contentLeft / 2 + bias),
+            );
+          } else {
+            layout.stageX = layout.veilX;
+          }
           /* The console's cells reach 1.5 radii left of its hub, so it needs a
              band of about 2.8 radii plus margins. Shrink it when the band is
              thin, hide it when even a readable core would not fit. */
