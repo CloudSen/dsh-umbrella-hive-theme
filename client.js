@@ -323,7 +323,7 @@ window.__ModuleLoader__.load({
 
       /* --- the Hive backdrop ------------------------------------------- */
       '.hive-backdrop{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}',
-      '.hive-canvas{display:block;width:100%;height:100%;opacity:1}',
+      '.hive-canvas{display:block;width:100%;height:100%;opacity:1;pointer-events:none}',
       'html:has(body[data-ds-dark-theme]) .hive-canvas{opacity:1;filter:none}',
 
       /* --- HUD frame ---------------------------------------------------- */
@@ -441,6 +441,28 @@ window.__ModuleLoader__.load({
       motes: 58,
     };
 
+    /**
+     * How the projection shares the window with the conversation.
+     *
+     * The transcript is a centred column whose width the user can drag, so the
+     * empty bands on either side are measured from the live DOM instead of
+     * guessed from the viewport. The Hive is never resized: it sits in the left
+     * band at full size while that band can hold it; when it cannot, the
+     * monitoring console on the right (pure set dressing) is dropped, and the
+     * Hive moves behind the middle of the column.
+     */
+    const HIVE_LAYOUT = {
+      /* Model-space radius of the widest solid deck at peak dolly, with slack
+         for the drone's bank. The outer floor rings are deliberately left
+         outside this box: they are hairline set dressing, and demanding room
+         for them would banish the Hive from every window. */
+      footprint: 1.7,
+      /* Clear space between that deck and the transcript. */
+      margin: 4,
+      /* Below this the console's readout cells crowd the text; hide it. */
+      consoleMinRadius: 84,
+    };
+
     const clamp01 = (value) => (value < 0 ? 0 : value > 1 ? 1 : value);
     const smoothstep = (edge0, edge1, value) => {
       const t = clamp01((value - edge0) / (edge1 - edge0));
@@ -473,7 +495,12 @@ window.__ModuleLoader__.load({
       const canvas = document.createElement('canvas');
       canvas.className = 'hive-canvas';
       host.append(canvas);
-      document.body.appendChild(host);
+      /* Inside #root, not beside it: the shell marks every other body child
+         `-webkit-app-region:no-drag`, which turns a full-window backdrop into
+         a dead zone for the title-bar drag. #root carries no background of
+         its own, so the negative layer still reads as behind the app. */
+      const mount = document.getElementById('root') ?? document.body;
+      mount.appendChild(host);
 
       const context = canvas.getContext('2d', { alpha: true });
       if (!context) {
@@ -496,6 +523,25 @@ window.__ModuleLoader__.load({
       let reduced = media ? media.matches : false;
       const pointer = { x: 0, y: 0, targetX: 0, targetY: 0 };
 
+      /* Live placement, recomputed from the conversation's own resize and
+         style changes: the sidebar, the right rail and the transcript's width
+         handles all move the column without a window resize. */
+      const layout = {
+        beside: false,
+        stageX: 0,
+        veilX: 0,
+        consoleVisible: false,
+        consoleX: 0,
+        consoleY: 0,
+        consoleRadius: 0,
+      };
+      let layoutTimer = 0;
+      let layoutFrame = 0;
+      let watchedBody = null;
+      let bodyObserver = null;
+      let styleObserver = null;
+      let stillAt = 0;
+
       const motes = [];
       for (let index = 0; index < HIVE.motes; index += 1) {
         motes.push({
@@ -508,6 +554,12 @@ window.__ModuleLoader__.load({
         });
       }
 
+      /** Draw the single frame reduced motion gets, frozen at one instant. */
+      function drawStill() {
+        if (!stillAt) stillAt = performance.now();
+        draw(stillAt);
+      }
+
       function resize() {
         width = view.innerWidth;
         height = view.innerHeight;
@@ -517,7 +569,155 @@ window.__ModuleLoader__.load({
         canvas.style.width = width + 'px';
         canvas.style.height = height + 'px';
         context.setTransform(dpr, 0, 0, dpr, 0, 0);
-        if (reduced) draw(performance.now());
+        measureLayout();
+        trackConversation();
+        if (reduced) drawStill();
+      }
+
+      /** The widest visible transcript column in the centre pane, or null. */
+      function conversationBody() {
+        const nodes = document.querySelectorAll('[data-conversation-content]');
+        let best = null;
+        let bestArea = 0;
+        for (const node of nodes) {
+          const rect = node.getBoundingClientRect();
+          if (rect.width < 160 || rect.height < 120) continue;
+          /* An embedded conversation in the right rail starts past the middle
+             of the window; the centre transcript never does. */
+          if (rect.left >= width * 0.5) continue;
+          const visibleWidth = Math.max(0, Math.min(rect.right, width) - Math.max(rect.left, 0));
+          const visibleHeight = Math.max(0, Math.min(rect.bottom, height) - Math.max(rect.top, 0));
+          const area = visibleWidth * visibleHeight;
+          if (area <= 0 || area <= bestArea) continue;
+          best = { node, rect };
+          bestArea = area;
+        }
+        return best;
+      }
+
+      /**
+       * Read the transcript width the same way the conversation does: the
+       * user's dragged preference when present, else the adaptive column
+       * fraction. Both arrive as CSS variables from the width controls.
+       */
+      function contentWidthOf(node, columnWidth) {
+        const style = view.getComputedStyle(node);
+        const preferred = Number.parseFloat(style.getPropertyValue('--dsh-chat-user-width'));
+        if (Number.isFinite(preferred) && preferred > 0) return Math.min(preferred, columnWidth);
+        const published = Number.parseFloat(
+          style.getPropertyValue('--dsh-conversation-column-width'),
+        );
+        if (Number.isFinite(published) && published > 0) {
+          return Math.min(columnWidth, Math.max(680, Math.min(published * 0.64, 920)));
+        }
+        /* Before the width controls publish, the stylesheet's clamp falls back
+           to its 680px floor, not to a fraction of the column. */
+        return Math.min(columnWidth, 680);
+      }
+
+      /**
+       * Fit the projection to the conversation. A wide window keeps the model
+       * in the left band and the console in the right one; a narrow window
+       * drops the console and centres the model behind the transcript.
+       * @returns whether the drawn placement changed.
+       */
+      function measureLayout() {
+        if (!width || !height) return false;
+        const previous = {
+          beside: layout.beside,
+          stageX: layout.stageX,
+          veilX: layout.veilX,
+          consoleVisible: layout.consoleVisible,
+          consoleX: layout.consoleX,
+          consoleY: layout.consoleY,
+          consoleRadius: layout.consoleRadius,
+        };
+        const body = conversationBody();
+        if (body === null) {
+          layout.beside = false;
+          layout.stageX = width * 0.5;
+          layout.veilX = width * 0.5;
+          layout.consoleVisible = false;
+        } else {
+          const { node, rect } = body;
+          const columnWidth = Math.max(1, rect.width);
+          const contentWidth = Math.max(1, contentWidthOf(node, columnWidth));
+          const gutter = Math.max(0, (columnWidth - contentWidth) / 2);
+          const contentLeft = rect.left + gutter;
+          const contentRight = contentLeft + contentWidth;
+          const rightGutter = Math.max(0, rect.right - contentRight);
+          /* The widest deck sets the on-screen half-width, and the focal is a
+             fixed fraction of the window height, so it scales with that height
+             rather than with the column. */
+          const half = (height * 0.88 * HIVE_LAYOUT.footprint) / HIVE.camDist;
+          const threshold = half * 2 + HIVE_LAYOUT.margin * 2;
+          /* The whole left side counts, sidebar included: the sidebar is
+             translucent, so the model may sit under it. Only the transcript's
+             own left edge is the boundary. */
+          const fitsBeside = layout.beside
+            ? contentLeft >= threshold - 8
+            : contentLeft >= threshold;
+          layout.beside = fitsBeside;
+          layout.veilX = rect.left + columnWidth / 2;
+          layout.stageX = fitsBeside
+            ? contentLeft / 2
+            : layout.veilX;
+          /* The console's cells reach 1.5 radii left of its hub, so it needs a
+             band of about 2.8 radii plus margins. Shrink it when the band is
+             thin, hide it when even a readable core would not fit. */
+          if (fitsBeside) {
+            const radius = Math.min(width * 0.072, 132, (rightGutter - 48) / 2.8);
+            layout.consoleRadius = Math.max(0, radius);
+            layout.consoleVisible = radius >= HIVE_LAYOUT.consoleMinRadius;
+            layout.consoleX = contentRight + rightGutter / 2;
+            layout.consoleY = height * 0.42;
+          } else {
+            layout.consoleVisible = false;
+          }
+        }
+        return (
+          layout.beside !== previous.beside ||
+          layout.stageX !== previous.stageX ||
+          layout.veilX !== previous.veilX ||
+          layout.consoleVisible !== previous.consoleVisible ||
+          layout.consoleX !== previous.consoleX ||
+          layout.consoleY !== previous.consoleY ||
+          layout.consoleRadius !== previous.consoleRadius
+        );
+      }
+
+      /** Follow whichever centre transcript is currently on screen. */
+      function trackConversation() {
+        const body = conversationBody();
+        if (body === null || body.node === watchedBody) return;
+        watchedBody = body.node;
+        if (bodyObserver) bodyObserver.disconnect();
+        if (styleObserver) styleObserver.disconnect();
+        bodyObserver = null;
+        styleObserver = null;
+        if (typeof view.ResizeObserver !== 'function') return;
+        bodyObserver = new view.ResizeObserver(scheduleMeasure);
+        bodyObserver.observe(body.node);
+        const root = body.node.parentElement;
+        if (root === null) return;
+        bodyObserver.observe(root);
+        if (typeof view.MutationObserver !== 'function') return;
+        /* The width handles write --dsh-chat-user-width inline on the root;
+           that rewrite is the only signal when the body itself does not
+           change size. */
+        styleObserver = new view.MutationObserver(scheduleMeasure);
+        styleObserver.observe(root, { attributes: true, attributeFilter: ['style'] });
+      }
+
+      /** Coalesce observer churn into one measurement per frame. */
+      function scheduleMeasure() {
+        if (layoutFrame) return;
+        layoutFrame = view.requestAnimationFrame(() => {
+          layoutFrame = 0;
+          if (document.hidden) return;
+          trackConversation();
+          if (measureLayout() && reduced) drawStill();
+        });
       }
 
       /** Project a model-space point into screen space. */
@@ -577,7 +777,7 @@ window.__ModuleLoader__.load({
         pointer.x += (pointer.targetX - pointer.x) * 0.05;
         pointer.y += (pointer.targetY - pointer.y) * 0.05;
 
-        const stageX = Math.min(Math.max(width * 0.24, 420), 600) + pointer.x * 5;
+        const stageX = layout.stageX + pointer.x * 5;
         const baseY = height * 0.9 + pointer.y * 3;
         /* Dolly: the lens breathes in and out on two slow, unrelated periods,
            so the facility is now pushed back, now pulled close. */
@@ -1576,11 +1776,12 @@ window.__ModuleLoader__.load({
         context.globalCompositeOperation = 'source-over';
 
         /* Vignette toward the working column: keeps prose crisp over the glow. */
+        const veilX = layout.veilX || width * 0.5;
         const veil = context.createRadialGradient(
-          width * 0.64,
+          veilX,
           height * 0.42,
           Math.min(width, height) * 0.22,
-          width * 0.64,
+          veilX,
           height * 0.42,
           Math.max(width, height) * 0.82,
         );
@@ -1594,11 +1795,12 @@ window.__ModuleLoader__.load({
            conversation, so it gets the facility's monitoring console: three
            counter-rotating hex rings around a live core, a sweep, and a short
            readout stack. Nothing here is informational — it is set dressing,
-           kept faint enough to sit under the interface. */
-        if (width > 1500) {
-          const panelX = width * 0.875;
-          const panelY = height * 0.42;
-          const panelR = Math.min(width * 0.072, 132);
+           kept faint enough to sit under the interface, and the first thing
+           dropped when the window leaves no band for it. */
+        if (layout.consoleVisible) {
+          const panelX = layout.consoleX;
+          const panelY = layout.consoleY;
+          const panelR = layout.consoleRadius;
           const breathe = 0.5 + 0.5 * Math.sin(tSec * 0.7);
           const inkScale = darkScheme ? 1 : 1.9;
 
@@ -1723,7 +1925,9 @@ window.__ModuleLoader__.load({
 
       function onVisibility() {
         visible = !document.hidden;
-        if (visible && !reduced) {
+        if (!visible) return;
+        scheduleMeasure();
+        if (!reduced) {
           lastFrame = 0;
           if (!frameId) frameId = view.requestAnimationFrame(loop);
         }
@@ -1734,8 +1938,10 @@ window.__ModuleLoader__.load({
         if (reduced) {
           if (frameId) view.cancelAnimationFrame(frameId);
           frameId = 0;
-          draw(performance.now());
+          stillAt = performance.now();
+          drawStill();
         } else if (!frameId && visible) {
+          stillAt = 0;
           lastFrame = 0;
           frameId = view.requestAnimationFrame(loop);
         }
@@ -1743,15 +1949,16 @@ window.__ModuleLoader__.load({
 
       resize();
       visible = !document.hidden;
-      if (reduced) {
-        draw(performance.now());
-      } else {
-        frameId = view.requestAnimationFrame(loop);
-      }
+      if (!reduced) frameId = view.requestAnimationFrame(loop);
 
       view.addEventListener('resize', resize);
       view.addEventListener('pointermove', onPointerMove, { passive: true });
       document.addEventListener('visibilitychange', onVisibility);
+      /* A safety net for bodies that mount after this effect; the observers
+         carry every ordinary move. */
+      layoutTimer = view.setInterval(() => {
+        if (!document.hidden) scheduleMeasure();
+      }, 1500);
       if (media) {
         if (typeof media.addEventListener === 'function') {
           media.addEventListener('change', onMotionChange);
@@ -1763,6 +1970,14 @@ window.__ModuleLoader__.load({
       return () => {
         if (frameId) view.cancelAnimationFrame(frameId);
         frameId = 0;
+        if (layoutFrame) view.cancelAnimationFrame(layoutFrame);
+        layoutFrame = 0;
+        if (layoutTimer) view.clearInterval(layoutTimer);
+        layoutTimer = 0;
+        if (bodyObserver) bodyObserver.disconnect();
+        if (styleObserver) styleObserver.disconnect();
+        bodyObserver = null;
+        styleObserver = null;
         view.removeEventListener('resize', resize);
         view.removeEventListener('pointermove', onPointerMove);
         document.removeEventListener('visibilitychange', onVisibility);

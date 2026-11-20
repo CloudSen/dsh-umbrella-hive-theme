@@ -1,5 +1,10 @@
 """Generates docs/preview.svg — the bundle detail image.
 
+The storefront preview is the same art rasterized into assets/preview.png, because
+the market refuses SVG screenshots:
+
+    rsvg-convert -w 1280 -h 600 docs/preview.svg -o assets/preview.png
+
 The geometry mirrors the client renderer (client.js): the same camera, the same
 deck stack, the same shaft, the same rail tunnel. Keep the constants here in
 step with HIVE in client.js when the model changes.
